@@ -1,10 +1,7 @@
 from __future__ import division, unicode_literals, print_function
 import re
 from .core import NumberParseException, placevalue
-from decimal import Decimal, getcontext
-
-# Allows imprecision 10 digits right of the decimal
-getcontext().prec = 10
+from decimal import Decimal, localcontext
 
 
 VOCAB = {
@@ -142,11 +139,12 @@ class FST:
             ('X', 'A'): f_add,     # 9100
             ('X', 'P'): f_begin_decimal,   # 9000.99
             ('X', 'F'): f_ret,     # 9000
-            ('Z', 'F'): f_ret,     # 0
             ('Z', 'D'): f_add_decimal,     # 9.09
-            ('A', 'H'): f_hundred,     # 100
+            ('Z', 'P'): f_begin_decimal,   # 9.09
+            ('Z', 'F'): f_ret,     # 0
+            ('A', 'H'): f_hundred,         # 100
             ('P', 'D'): f_add_decimal,     # 9.99
-            ('P', 'Z'): f_add_decimal  # 9.09
+            ('P', 'Z'): f_add_decimal       # 9.09
         }
 
     def transition(self, token):
@@ -204,4 +202,8 @@ def evaluate(text):
     tokens = tokenize(text)
     if not tokens:
         raise ValueError("No valid tokens in {0}".format(text))
-    return compute(tokens)
+    with localcontext() as ctx:
+        # Locally sets decimal precision to 15 for all computations
+        ctx.prec = 15
+        output = compute(tokens)
+    return output
