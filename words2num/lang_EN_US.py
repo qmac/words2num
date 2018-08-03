@@ -1,6 +1,10 @@
 from __future__ import division, unicode_literals, print_function
 import re
 from .core import NumberParseException, placevalue
+from decimal import Decimal, getcontext
+
+# Allows imprecision 10 digits right of the decimal
+getcontext().prec = 10
 
 
 VOCAB = {
@@ -56,6 +60,7 @@ VOCAB = {
     'novemdecillion': (10**60, 'X'),
     'vigintillion': (10**63, 'X'),
     'centillion': (10**303, 'X'),
+    'point': (None, 'P'),
 }
 
 
@@ -64,9 +69,11 @@ class FST:
         def f_zero(self, n):
             assert n == 0
             self.value = n
+            self.place = 0
 
         def f_add(self, n):
             self.value += n
+            self.place = 0
 
         def f_mul(self, n):
             output = self.value * n
@@ -76,6 +83,7 @@ class FST:
         def f_mul_hundred(self, n):
             assert n == 100
             self.value *= n
+            self.place = 0
 
         def f_ret(self, _):
             return self.value
@@ -86,8 +94,19 @@ class FST:
         def f_hundred(self, n):
             assert n == 100
             self.value = n
+            self.place = 0
+
+        def f_begin_decimal(self, _):
+            self.place = -1
+
+        def f_add_decimal(self, n):
+            if self.place >= 0:
+                raise NumberParseException("Invalid sequence")
+            self.value += n * Decimal(10) ** Decimal(self.place)
+            self.place -= 1
 
         self.value = 0
+        self.place = 0
         self.state = 'S'
         # self.states = {'S', 'D', 'T', 'M', 'H', 'X', 'Z', 'A', 'F'}
         self.edges = {
@@ -98,26 +117,36 @@ class FST:
             ('S', 'A'): f_none,    # 100
             ('D', 'H'): f_mul_hundred,     # 900
             ('D', 'X'): f_mul,     # 9000
+            ('D', 'D'): f_add_decimal,     # 9.99
+            ('D', 'Z'): f_add_decimal,     # 9.09
+            ('D', 'P'): f_begin_decimal,   # 9.99
             ('D', 'F'): f_ret,     # 9
             ('T', 'D'): f_add,     # 99
             ('T', 'H'): f_mul_hundred,
             ('T', 'X'): f_mul,     # 90000
+            ('T', 'P'): f_begin_decimal,   # 90.99
             ('T', 'F'): f_ret,     # 90
             ('M', 'H'): f_mul_hundred,
             ('M', 'X'): f_mul,     # 19000
+            ('M', 'P'): f_begin_decimal,   # 19.99
             ('M', 'F'): f_ret,     # 19
             ('H', 'D'): f_add,     # 909
             ('H', 'T'): f_add,     # 990
             ('H', 'M'): f_add,     # 919
             ('H', 'X'): f_mul,     # 900000
+            ('H', 'P'): f_begin_decimal,   # 900.99
             ('H', 'F'): f_ret,     # 900
             ('X', 'D'): f_add,     # 9009
             ('X', 'T'): f_add,     # 9090
             ('X', 'M'): f_add,     # 9019
             ('X', 'A'): f_add,     # 9100
+            ('X', 'P'): f_begin_decimal,   # 9000.99
             ('X', 'F'): f_ret,     # 9000
             ('Z', 'F'): f_ret,     # 0
-            ('A', 'H'): f_hundred  # 100
+            ('Z', 'D'): f_add_decimal,     # 9.09
+            ('A', 'H'): f_hundred,     # 100
+            ('P', 'D'): f_add_decimal,     # 9.99
+            ('P', 'Z'): f_add_decimal  # 9.09
         }
 
     def transition(self, token):
@@ -166,7 +195,9 @@ def compute(tokens):
                                    "{0}".format(outputs))
     # DEBUG
     # print("-> {0}".format(outputs))
-    return sum(outputs)
+    total = sum(outputs)
+    total = float(total) if isinstance(total, Decimal) else total
+    return total
 
 
 def evaluate(text):
