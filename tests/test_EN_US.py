@@ -24,7 +24,14 @@ class TestEN_US(unittest.TestCase):
             "twenty-three hundred thousand four",
             "sixty-eight billion, two hundred two million and two",
             "sixty eight billion two hundred two million two",
-            "nine trillion eight hundred seven")
+            "nine trillion eight hundred seven",
+            "ninety nine point nine",
+            "ninety nine point nine nine nine nine nine nine nine six",
+            "fifteen point four",
+            "two thousand point five",
+            "eleven million point three three",
+            "one point two billion point six four",
+            "six hundred point nine nine")
         test_targets = (2,
             12,
             0,
@@ -36,7 +43,14 @@ class TestEN_US(unittest.TestCase):
             2300004,
             68202000002,
             68202000002,
-            9000000000807)
+            9000000000807,
+            99.9,
+            99.99999996,
+            15.4,
+            2000.5,
+            11000000.33,
+            1200000000.64,
+            600.99)
         tests = zip(test_trials, test_targets)
 
         for (trial, target) in tests:
@@ -79,7 +93,13 @@ class TestEN_US(unittest.TestCase):
             "one thousand one million one",
             "one thousand hundred million",
             "twenty-zero",
-            "a million billion thousand")
+            "a million billion thousand",
+            "one point one one million one one",
+            "four four point five",
+            "one point thousand",
+            "one point two point three",
+            "one point point two",
+            "eleven thousand point two hundred")
 
         for test in tests:
             try:

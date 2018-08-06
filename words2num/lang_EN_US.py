@@ -75,6 +75,7 @@ class FST:
         def f_mul(self, n):
             output = self.value * n
             self.value = 0
+            self.place = 0
             return output
 
         def f_mul_hundred(self, n):
@@ -94,7 +95,10 @@ class FST:
             self.place = 0
 
         def f_begin_decimal(self, _):
-            self.place = -1
+            if self.place >= 0:
+                self.place = -1
+            else:
+                raise NumberParseException("Invalid sequence")
 
         def f_add_decimal(self, n):
             if self.place >= 0:
